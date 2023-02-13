@@ -4,8 +4,9 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from "@nestjs/common";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { Request } from "express";
+import * as NodeCache from "node-cache";
 
 const AUTH_SCHEME = "bearer";
 const AUTH_REGEX = /(\S+)\s+(\S+)/;
@@ -18,6 +19,10 @@ type TwitchValidateResponse = {
 
 @Injectable()
 export class TwitchAuthGuard implements CanActivate {
+  private readonly tokenValidityCache = new NodeCache({
+    stdTTL: 60 * 60 /* 1 hour */,
+  });
+
   constructor(private readonly requestParam: string) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -54,9 +59,19 @@ export class TwitchAuthGuard implements CanActivate {
     return true;
   }
 
-  private async getValidatedToken(twitchToken: string) {
+  private async getValidatedToken(
+    twitchToken: string,
+  ): Promise<TwitchValidateResponse | null> {
+    const cachedValidity = this.tokenValidityCache.get<
+      TwitchValidateResponse | boolean
+    >(twitchToken);
+
+    if (cachedValidity != null) {
+      return typeof cachedValidity !== "boolean" ? cachedValidity : null;
+    }
+
     try {
-      const response = await axios.get<TwitchValidateResponse>(
+      const response: AxiosResponse<TwitchValidateResponse> = await axios.get(
         "https://id.twitch.tv/oauth2/validate",
         {
           headers: {
@@ -65,9 +80,12 @@ export class TwitchAuthGuard implements CanActivate {
         },
       );
       if (response.status === 200) {
+        this.tokenValidityCache.set(twitchToken, response.data);
         return response.data;
       }
     } catch (error) {}
+
+    this.tokenValidityCache.set(twitchToken, false);
 
     return null;
   }

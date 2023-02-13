@@ -5,7 +5,7 @@ import { ICacheService } from "../cache/cache-service.interface";
 export class ProfileDataCacheService {
   constructor(private readonly cache: ICacheService<string>) {}
 
-  async save(channelName: string, profileData: any) {
+  async save(channelName: string, profileData: unknown) {
     const profileJson = JSON.stringify(profileData);
     return this.cache.set(channelName, profileJson);
   }

@@ -2,14 +2,16 @@ import { IsObject } from "class-validator";
 
 export class ProfileDataDto {
   @IsObject({ each: true })
-  quotes: any[];
+  quotes: unknown[];
 
   @IsObject({ each: true })
-  commands: any[];
+  commands: unknown[];
 
   @IsObject({ each: true })
-  sortTags: any[];
+  sortTags: unknown[];
 
   @IsObject({ each: true })
-  variables: any[];
+  variables: unknown[];
 }
+
+

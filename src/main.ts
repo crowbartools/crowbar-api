@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
+import { json, text } from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,6 +18,9 @@ async function bootstrap() {
     defaultVersion: "1",
     type: VersioningType.URI,
   });
+
+  app.use(json({ limit: "5mb" }));
+  app.use(text({ type: "text/*", limit: "5mb" }));
 
   const config = new DocumentBuilder()
     .setTitle("Crowbar API")

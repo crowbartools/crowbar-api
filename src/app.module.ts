@@ -8,8 +8,12 @@ import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 10,
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 10,
+        },
+      ],
     }),
     DomainModule,
     InfrastructureModule,

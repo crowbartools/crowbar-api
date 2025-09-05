@@ -1,14 +1,11 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   NotFoundException,
   Param,
   Put,
-  Req,
   UseGuards,
-  ValidationPipe,
 } from "@nestjs/common";
 import { TwitchAuthGuard } from "src/api/auth/twitch-auth.guard";
 import { ProfileDataCacheService } from "src/domain/profile-data/profile-data-cache.service";

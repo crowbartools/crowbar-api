@@ -1,12 +1,14 @@
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Inject,
 } from "@nestjs/common";
 import axios, { AxiosResponse } from "axios";
+import { Cache } from "cache-manager";
 import { Request } from "express";
-import * as NodeCache from "node-cache";
 
 const AUTH_SCHEME = "bearer";
 const AUTH_REGEX = /(\S+)\s+(\S+)/;
@@ -19,11 +21,7 @@ type TwitchValidateResponse = {
 
 @Injectable()
 export class TwitchAuthGuard implements CanActivate {
-  private readonly tokenValidityCache = new NodeCache({
-    stdTTL: 60 * 60 /* 1 hour */,
-  });
-
-  constructor() {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -46,7 +44,13 @@ export class TwitchAuthGuard implements CanActivate {
       return false;
     }
 
-    const validatedTokenData = await this.getValidatedToken(authHeader.token);
+    const validatedTokenData = await this.cacheManager.wrap(
+      authHeader.token,
+      async () => {
+        return await this.getValidatedToken(authHeader.token);
+      },
+      { ttl: 60 * 60 /* 1 hour */, refreshThreshold: 55 * 60 /* 55 minutes */ },
+    );
 
     if (validatedTokenData == null) {
       return false;
@@ -63,14 +67,6 @@ export class TwitchAuthGuard implements CanActivate {
   private async getValidatedToken(
     twitchToken: string,
   ): Promise<TwitchValidateResponse | null> {
-    const cachedValidity = this.tokenValidityCache.get<
-      TwitchValidateResponse | boolean
-    >(twitchToken);
-
-    if (cachedValidity != null) {
-      return typeof cachedValidity !== "boolean" ? cachedValidity : null;
-    }
-
     try {
       const response: AxiosResponse<TwitchValidateResponse> = await axios.get(
         "https://id.twitch.tv/oauth2/validate",
@@ -81,12 +77,9 @@ export class TwitchAuthGuard implements CanActivate {
         },
       );
       if (response.status === 200) {
-        this.tokenValidityCache.set(twitchToken, response.data);
         return response.data;
       }
     } catch (error) {}
-
-    this.tokenValidityCache.set(twitchToken, false);
 
     return null;
   }

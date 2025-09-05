@@ -19,7 +19,7 @@ export class DataBinController {
   constructor(private readonly dataBinCache: DataBinCacheService) {}
 
   @Post()
-  @UseGuards(new TwitchAuthGuard())
+  @UseGuards(TwitchAuthGuard)
   @ApiBearerAuth("twitchAuth")
   @ApiConsumes("text/plain")
   async storeData(@Body() data: string) {

@@ -19,6 +19,8 @@ async function bootstrap() {
     "app.maxRequestBodySize",
   );
 
+  console.log(`Environment: ${env}`);
+
   app.use(helmet());
 
   app.useGlobalPipes(new ValidationPipe());
@@ -50,5 +52,7 @@ async function bootstrap() {
   }
 
   await app.listen(port);
+
+  console.log(`Started application on port ${port}...`);
 }
 bootstrap();

@@ -6,9 +6,11 @@ import {
   UnauthorizedException,
   Inject,
 } from "@nestjs/common";
+import { ConfigType } from "@nestjs/config";
 import axios, { AxiosResponse } from "axios";
 import { Cache } from "cache-manager";
 import { Request } from "express";
+import appConfig from "src/infrastructure/config";
 
 const AUTH_SCHEME = "bearer";
 const AUTH_REGEX = /(\S+)\s+(\S+)/;
@@ -21,7 +23,11 @@ type TwitchValidateResponse = {
 
 @Injectable()
 export class TwitchAuthGuard implements CanActivate {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(
+    @Inject(appConfig.KEY)
+    private config: ConfigType<typeof appConfig>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -53,6 +59,10 @@ export class TwitchAuthGuard implements CanActivate {
     );
 
     if (validatedTokenData == null) {
+      return false;
+    }
+
+    if (validatedTokenData.client_id !== this.config.twitchClientId) {
       return false;
     }
 

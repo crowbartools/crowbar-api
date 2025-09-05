@@ -7,26 +7,49 @@ import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { Keyv } from "keyv";
 import { CacheableMemory } from "cacheable";
+import { ConfigModule, ConfigService, ConfigType } from "@nestjs/config";
+import appConfig from "./infrastructure/config";
+
+const ENV = process.env.NODE_ENV || "development";
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60,
-          limit: 10,
-        },
-      ],
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [appConfig],
+      ignoreEnvFile: ENV !== "development",
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        await ConfigModule.envVariablesLoaded;
+        const rateLimitTtl = configService.get<number>("app.rateLimitTtl");
+        const rateLimitMax = configService.get<number>("app.rateLimitMax");
+        return {
+          throttlers: [
+            {
+              ttl: rateLimitTtl!,
+              limit: rateLimitMax!,
+            },
+          ],
+        };
+      },
     }),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => {
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        await ConfigModule.envVariablesLoaded;
+        const cacheTtl = configService.get<number>("app.cacheTtl");
+        const cacheLruSize = configService.get<number>("app.cacheLruSize");
         return {
           stores: [
             new Keyv({
               store: new CacheableMemory({
-                ttl: "3d",
-                lruSize: 2500,
+                ttl: cacheTtl,
+                lruSize: cacheLruSize,
               }),
             }),
           ],

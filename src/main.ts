@@ -26,6 +26,14 @@ async function bootstrap() {
     .setTitle("Crowbar API")
     .setDescription("Documentation for the Crowbar API")
     .setVersion("1.0")
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+      "twitchAuth",
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);

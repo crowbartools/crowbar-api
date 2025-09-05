@@ -10,6 +10,7 @@ import {
 import { TwitchAuthGuard } from "src/api/auth/twitch-auth.guard";
 import { ProfileDataCacheService } from "src/domain/profile-data/profile-data-cache.service";
 import { ProfileDataDto } from "./dtos/profile-data-body.dto";
+import { ApiBearerAuth } from "@nestjs/swagger";
 
 @Controller({
   path: "profile-data",
@@ -30,6 +31,7 @@ export class ProfileDataController {
 
   @Put(":channelName")
   @UseGuards(new TwitchAuthGuard("channelName"))
+  @ApiBearerAuth("twitchAuth")
   async storeProfileData(
     @Param("channelName") channelName: string,
     @Body() profileData: ProfileDataDto,

@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBearerAuth, ApiConsumes } from "@nestjs/swagger";
 import { TwitchAuthGuard } from "src/api/auth/twitch-auth.guard";
 import { DataBinCacheService } from "src/domain/data-bin/data-bin-cache.service";
 
@@ -19,6 +20,8 @@ export class DataBinController {
 
   @Post()
   @UseGuards(new TwitchAuthGuard())
+  @ApiBearerAuth("twitchAuth")
+  @ApiConsumes("text/plain")
   async storeData(@Body() data: string) {
     return await this.dataBinCache.setData(data);
   }

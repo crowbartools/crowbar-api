@@ -13,7 +13,6 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  const env = configService.get<string>("app.env");
   const port = configService.get<number>("app.port")!;
   const maxRequestBodySize = configService.get<string>(
     "app.maxRequestBodySize",
@@ -31,23 +30,21 @@ async function bootstrap() {
   app.use(json({ limit: maxRequestBodySize }));
   app.use(text({ type: "text/*", limit: maxRequestBodySize }));
 
-  if (env !== "production") {
-    const config = new DocumentBuilder()
-      .setTitle("Crowbar API")
-      .setDescription("Documentation for the Crowbar API")
-      .setVersion("1.0")
-      .addBearerAuth(
-        {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
-        "twitchAuth",
-      )
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup("docs", app, document);
-  }
+  const config = new DocumentBuilder()
+    .setTitle("Crowbar API")
+    .setDescription("Documentation for the Crowbar API")
+    .setVersion("1.0")
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+      "twitchAuth",
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("docs", app, document);
 
   await app.listen(port);
 

@@ -23,7 +23,7 @@ export class TwitchAuthGuard implements CanActivate {
     stdTTL: 60 * 60 /* 1 hour */,
   });
 
-  constructor(private readonly requestParam?: string) {}
+  constructor() {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -52,12 +52,10 @@ export class TwitchAuthGuard implements CanActivate {
       return false;
     }
 
-    if (
-      this.requestParam &&
-      validatedTokenData.login != request.params[this.requestParam]
-    ) {
-      return false;
-    }
+    request.user = {
+      twitchUsername: validatedTokenData.login,
+      twitchUserId: validatedTokenData.user_id,
+    };
 
     return true;
   }

@@ -8,9 +8,10 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiConsumes } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiConsumes, ApiResponse } from "@nestjs/swagger";
 import { TwitchAuthGuard } from "src/api/auth/twitch-auth.guard";
 import { DataBinCacheService } from "src/domain/data-bin/data-bin-cache.service";
+import { StoreDataResponseDto } from "./dtos/store-data-response.dto";
 
 @Controller({
   path: "data-bin",
@@ -22,6 +23,10 @@ export class DataBinController {
   @UseGuards(TwitchAuthGuard)
   @ApiBearerAuth("twitchAuth")
   @ApiConsumes("text/plain")
+  @ApiResponse({
+    type: StoreDataResponseDto,
+    status: 201,
+  })
   async storeData(@Body() data: string) {
     return await this.dataBinCache.setData(data);
   }

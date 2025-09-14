@@ -9,7 +9,10 @@ import {
 } from "@nestjs/websockets";
 import { Server, WebSocket } from "ws";
 import { UpdateWebhooksDto } from "./dtos/update-webhooks.dto";
-import { TwitchUser } from "src/domain/profile-data/profile-types";
+import {
+  TwitchUser,
+  WebSocketUser,
+} from "src/domain/profile-data/profile-types";
 import { CurrentUser } from "../decorators/current-user.decorator";
 import { FirebotWebhooksService } from "../services/firebot-webhooks.service";
 
@@ -26,7 +29,7 @@ import { FirebotWebhooksService } from "../services/firebot-webhooks.service";
 export class FirebotRelayGateway implements OnGatewayDisconnect {
   constructor(private readonly firebotWebhooksService: FirebotWebhooksService) {
     this.firebotWebhooksService.on("webhook-triggered", (details) => {
-      this.broadcastMessageToUser(details.twitchUserId, "webhook", {
+      this.broadcastMessageToClientId(details.clientId, "webhook", {
         webhookId: details.webhookId,
         payload: details.payload,
       });
@@ -39,23 +42,31 @@ export class FirebotRelayGateway implements OnGatewayDisconnect {
   @SubscribeMessage("update-webhooks")
   handleUpdateWebhooks(
     @MessageBody() data: UpdateWebhooksDto,
-    @CurrentUser() user: TwitchUser,
+    @CurrentUser() user: WebSocketUser,
   ) {
     this.firebotWebhooksService.updateWebhooksForUser(
+      user.clientId,
       user.twitchUserId,
       data.webhookIds,
     );
   }
 
   handleDisconnect(client: WebSocket) {
-    const user = (client as any)?._socket?.user as TwitchUser | null;
+    const user = (client as any)?._socket?.user as WebSocketUser | null;
     if (!user) {
       return;
     }
-    this.firebotWebhooksService.updateWebhooksForUser(user.twitchUserId, []);
+    this.firebotWebhooksService.updateWebhooksForUser(
+      user.clientId,
+      user.twitchUserId,
+      [],
+    );
   }
 
-  public broadcastMessageToUser(
+  /**
+   * Sends a message to all connected clients for a specific Twitch user ID.
+   */
+  public broadcastMessageToTwitchUser(
     twitchUserId: string,
     event: string,
     data: unknown,
@@ -63,6 +74,21 @@ export class FirebotRelayGateway implements OnGatewayDisconnect {
     const clients = Array.from(this.server.clients).filter((client) => {
       const user = (client as any)?._socket?.user as TwitchUser | null;
       return user?.twitchUserId === twitchUserId;
+    });
+
+    for (const client of clients) {
+      this.sendMessageToClient(client, event, data);
+    }
+  }
+
+  public broadcastMessageToClientId(
+    clientId: string,
+    event: string,
+    data: unknown,
+  ): void {
+    const clients = Array.from(this.server.clients).filter((client) => {
+      const user = (client as any)?._socket?.user as WebSocketUser | null;
+      return user?.clientId === clientId;
     });
 
     for (const client of clients) {

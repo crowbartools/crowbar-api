@@ -4,7 +4,11 @@ import { WsAdapter } from "@nestjs/platform-ws";
 import * as http from "http";
 import { TwitchTokenValidatorService } from "../auth/twitch-token-validatior.service";
 import { WebSocket } from "ws";
-import { TwitchUser } from "src/domain/profile-data/profile-types";
+import {
+  TwitchUser,
+  WebSocketUser,
+} from "src/domain/profile-data/profile-types";
+import { v4 as uuid } from "uuid";
 
 export class CustomWsAdaptor extends WsAdapter {
   apiTokens: string[] = [];
@@ -56,17 +60,19 @@ export class CustomWsAdaptor extends WsAdapter {
         let isRequestDelegated = false;
         for (const wsServer of wsServersCollection) {
           if (pathname === wsServer.path) {
-            let user: TwitchUser | null = null;
+            let user: WebSocketUser | null = null;
             if (wsServer?.options?.auth) {
-              user =
+              const twitchUser =
                 await twitchTokenValidator.validateAuthorizationHeaderAndGetUserData(
                   request.headers["authorization"],
                 );
-              if (!user) {
+              if (!twitchUser) {
                 socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
                 socket.destroy();
                 return;
               }
+              const clientId = uuid();
+              user = { ...twitchUser, clientId };
             }
             wsServer.handleUpgrade(
               request,

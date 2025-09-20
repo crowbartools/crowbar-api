@@ -7,7 +7,8 @@ export class FirebotWebhooksService extends TypedEmitter<{
     clientId: string;
     twitchUserId: string;
     webhookId: string;
-    payload: any;
+    payload: unknown;
+    headers: Record<string, string>;
   }) => void;
 }> {
   constructor() {
@@ -33,7 +34,12 @@ export class FirebotWebhooksService extends TypedEmitter<{
     return userWebhooks;
   }
 
-  public handleWebhook(twitchUserId: string, webhookId: string, payload: any) {
+  public handleWebhook(
+    twitchUserId: string,
+    webhookId: string,
+    payload: unknown,
+    headers: Record<string, string>,
+  ) {
     const userWebhooks = this.getWebhooksForUser(twitchUserId);
 
     if (!userWebhooks) {
@@ -50,6 +56,7 @@ export class FirebotWebhooksService extends TypedEmitter<{
         twitchUserId,
         webhookId,
         payload,
+        headers,
       });
     }
   }

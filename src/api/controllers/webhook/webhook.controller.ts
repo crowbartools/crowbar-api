@@ -1,4 +1,11 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Headers,
+} from "@nestjs/common";
 import { FirebotWebhooksService } from "src/api/services/firebot-webhooks.service";
 
 @Controller({
@@ -13,8 +20,14 @@ export class WebhookController {
   handleWebhook(
     @Param("twitchUserId") twitchUserId: string,
     @Param("webhookId", ParseUUIDPipe) webhookId: string,
-    @Body() payload: any,
+    @Body() payload: unknown,
+    @Headers() headers: Record<string, string>,
   ) {
-    this.firebotWebhooksService.handleWebhook(twitchUserId, webhookId, payload);
+    this.firebotWebhooksService.handleWebhook(
+      twitchUserId,
+      webhookId,
+      payload,
+      headers,
+    );
   }
 }

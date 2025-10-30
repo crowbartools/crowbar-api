@@ -7,10 +7,16 @@ import { FirebotRelayGateway } from "./socket/firebot-relay.gateway";
 import { TwitchTokenValidatorService } from "./auth/twitch-token-validatior.service";
 import { FirebotWebhooksService } from "./services/firebot-webhooks.service";
 import { WebhookController } from "./controllers/webhook/webhook.controller";
+import { NotificationsController } from "./controllers/notifications/notifications.controller";
 
 @Module({
   imports: [DomainModule, InfrastructureModule],
-  controllers: [ProfileDataController, DataBinController, WebhookController],
+  controllers: [
+    ProfileDataController,
+    DataBinController,
+    WebhookController,
+    NotificationsController
+  ],
   providers: [
     TwitchTokenValidatorService,
     FirebotWebhooksService,

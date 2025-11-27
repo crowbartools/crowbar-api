@@ -9,4 +9,5 @@ export default registerAs("app", () => ({
   cacheTtl: process.env.CACHE_TTL || "1d",
   cacheLruSize: parseInt(process.env.CACHE_LRU_SIZE!, 10) || 2500,
   twitchClientId: process.env.TWITCH_CLIENT_ID || "",
+  steamWebApiKey: process.env.STEAM_WEB_API_KEY || "",
 }));

@@ -23,6 +23,6 @@ export class SteamController {
       throw new BadRequestException("Search parameter is required");
     }
     const appId = await this.steamService.findSteamAppIdByName(search);
-    return appId;
+    return { appId };
   }
 }

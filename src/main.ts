@@ -3,13 +3,14 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
-import { json, text } from "express";
 import { ConfigService } from "@nestjs/config";
 import { CustomWsAdaptor } from "./api/socket/custom-ws-adaptor";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true,
+    rawBody: true,
   });
 
   const configService = app.get(ConfigService);
@@ -30,8 +31,10 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(new CustomWsAdaptor(app));
 
-  app.use(json({ limit: maxRequestBodySize }));
-  app.use(text({ type: "text/*", limit: maxRequestBodySize }));
+  app.useBodyParser('json', { limit: maxRequestBodySize });
+  app.useBodyParser('text', { limit: maxRequestBodySize });
+  app.useBodyParser('urlencoded', { limit: maxRequestBodySize });
+  app.useBodyParser('raw', { limit: maxRequestBodySize });
 
   const config = new DocumentBuilder()
     .setTitle("Crowbar API")

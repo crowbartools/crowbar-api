@@ -5,6 +5,8 @@ import {
   ParseUUIDPipe,
   Post,
   Headers,
+  Get,
+  NotFoundException,
 } from "@nestjs/common";
 import { FirebotWebhooksService } from "src/api/services/firebot-webhooks.service";
 
@@ -29,5 +31,10 @@ export class WebhookController {
       payload,
       headers,
     );
+  }
+
+  @Get("/:twitchUserId/:webhookId")
+  webhookGetWarning() {
+    throw new NotFoundException("Please use POST requests for webhooks.");
   }
 }

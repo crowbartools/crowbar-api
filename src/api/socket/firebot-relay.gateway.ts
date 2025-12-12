@@ -32,6 +32,7 @@ export class FirebotRelayGateway implements OnGatewayDisconnect {
       this.broadcastMessageToClientId(details.clientId, "webhook", {
         webhookId: details.webhookId,
         payload: details.payload,
+        rawPayload: details.rawPayload,
         headers: details.headers,
       });
     });

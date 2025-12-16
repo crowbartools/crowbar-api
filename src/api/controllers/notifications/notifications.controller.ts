@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import { NotificationCacheService } from "../../../domain/notifications/notification-cache.service";
 
 @Controller({
@@ -24,6 +25,7 @@ export class NotificationsController {
     await this.notificationCache.refreshCache();
   }
 
+  @SkipThrottle()
   @Get(":version")
   @Header("content-type", "text/json")
   async getData(@Param("version") version: string) {

@@ -79,6 +79,33 @@ export class CustomWsAdaptor extends WsAdapter {
               socket,
               head,
               (client: WebSocket) => {
+                const pingInterval = setInterval(() => {
+                  if (client.readyState === WebSocket.OPEN) {
+                    client.ping();
+                  } else {
+                    clearInterval(pingInterval);
+                  }
+                }, 30_000);
+
+                let pongTimeout: NodeJS.Timeout;
+
+                client.on("pong", () => {
+                  clearTimeout(pongTimeout);
+                  pongTimeout = setTimeout(() => {
+                    clearInterval(pingInterval);
+                    client.terminate();
+                  }, 75_000);
+                });
+
+                client.on("close", () => {
+                  clearInterval(pingInterval);
+                  clearTimeout(pongTimeout);
+                });
+
+                if (client.readyState === WebSocket.OPEN) {
+                  client.ping();
+                }
+
                 (socket as any).user = user;
                 wsServer.emit("connection", client, request);
               },
@@ -91,7 +118,7 @@ export class CustomWsAdaptor extends WsAdapter {
           socket.destroy();
         }
       } catch (err) {
-        socket.end("HTTP/1.1 400\r\n" + err.message);
+        socket.end("HTTP/1.1 400\r\n" + (err as Error).message);
       }
     });
     return httpServer;

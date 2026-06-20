@@ -8,6 +8,7 @@ import { TwitchTokenValidatorService } from "./auth/twitch-token-validatior.serv
 import { FirebotWebhooksService } from "./services/firebot-webhooks.service";
 import { WebhookController } from "./controllers/webhook/webhook.controller";
 import { NotificationsController } from "./controllers/notifications/notifications.controller";
+import { PluginsController } from "./controllers/plugins/plugins.controller";
 import { SteamController } from "./controllers/steam/steam.controller";
 
 @Module({
@@ -17,6 +18,7 @@ import { SteamController } from "./controllers/steam/steam.controller";
     DataBinController,
     WebhookController,
     NotificationsController,
+    PluginsController,
     SteamController,
   ],
   providers: [
@@ -25,4 +27,4 @@ import { SteamController } from "./controllers/steam/steam.controller";
     FirebotRelayGateway,
   ],
 })
-export class ApiModule {}
+export class ApiModule { }

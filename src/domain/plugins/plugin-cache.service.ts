@@ -1,5 +1,4 @@
 import type {
-    ManagedPlugin,
     ManagedPluginManifest,
     ManagedPluginWithManifest,
     ManagedPluginUpdateRequest,
@@ -249,7 +248,7 @@ export class PluginCacheService {
         return null;
     }
 
-    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPlugin[]> {
+    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPluginWithManifest[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
@@ -262,7 +261,7 @@ export class PluginCacheService {
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                } as ManagedPlugin
+                } as ManagedPluginWithManifest
                 : null;
         }).filter(r => r != null)
 

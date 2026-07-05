@@ -1,6 +1,6 @@
 import type {
     ManagedPluginManifest,
-    ManagedPluginWithManifest,
+    ManagedPlugin,
     ManagedPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
@@ -248,7 +248,7 @@ export class PluginCacheService {
         return null;
     }
 
-    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPluginWithManifest[]> {
+    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPlugin[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
@@ -261,7 +261,7 @@ export class PluginCacheService {
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                } as ManagedPluginWithManifest
+                } as ManagedPlugin
                 : null;
         }).filter(r => r != null)
 
@@ -299,12 +299,12 @@ export class PluginCacheService {
         return true;
     }
 
-    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPluginWithManifest[]> {
+    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPlugin[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availableUpdates: ManagedPluginWithManifest[] = [];
+        const availableUpdates: ManagedPlugin[] = [];
 
         for (const currentPlugin of request.plugins) {
             const plugin = pluginCache.find(p => p.author === currentPlugin.author && p.name === currentPlugin.name);

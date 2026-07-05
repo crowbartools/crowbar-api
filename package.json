@@ -49,7 +49,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@crowbartools/firebot-types": "^5.67.0-alpha25",
+    "@crowbartools/firebot-types": "^5.67.0-alpha27",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
     "@nestjs/testing": "^11.1.6",

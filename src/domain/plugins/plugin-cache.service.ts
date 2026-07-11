@@ -1,11 +1,14 @@
 import type {
     ManagedPluginManifest,
-    ManagedPlugin,
+    ManagedPluginWithManifest,
     ManagedPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
 import type {
     CachedPlugin,
+    CategorizedPluginManifest,
+    PluginSearchOptions,
+    PluginSearchSortMode,
     PluginVersionWithManifest,
 } from "./plugin-types";
 import { Octokit } from "@octokit/rest";
@@ -17,6 +20,7 @@ import { Injectable } from "@nestjs/common";
 import { ICacheService } from "../cache/cache-service.interface";
 import { createGunzip } from "node:zlib";
 import sortVersionStrings from "../util/sort-versions";
+import { PluginStatsService } from "./plugin-stats.service";
 
 const PLUGIN_MANIFEST_OWNER = "crowbartools";
 const PLUGIN_MANIFEST_REPO = "firebot-plugins";
@@ -29,7 +33,10 @@ const PLUGIN_MANIFEST_FILENAME_REGEX = /^manifests\/(.*)\/(.*)\/(.*)\/manifest.j
 
 @Injectable()
 export class PluginCacheService {
-    constructor(private readonly cache: ICacheService<CachedPlugin[]>) { }
+    constructor(
+        private readonly cache: ICacheService<CachedPlugin[]>,
+        private readonly pluginStats: PluginStatsService,
+    ) { }
 
     private _octokit = new Octokit();
     private _latestHash = "";
@@ -248,37 +255,75 @@ export class PluginCacheService {
         return null;
     }
 
-    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPlugin[]> {
+    async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPluginWithManifest[], total: number }> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availablePlugins = pluginCache.map(r => {
-            const latest = this.getLatestCompatiblePluginVersion(r.versions, firebotVersion);
+        let plugins = pluginCache.map(r => {
+            const latest = this.getLatestCompatiblePluginVersion(r.versions, options.firebotVersion);
             return latest != null
                 ? {
                     author: r.author,
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                } as ManagedPlugin
+                } as ManagedPluginWithManifest
                 : null;
-        }).filter(r => r != null)
+        }).filter(r => r != null);
 
-        const fuse = new Fuse(availablePlugins ?? [], {
-            keys: [
-                "author",
-                "pluginName",
-                "manifest.name",
-                "manifest.author",
-                "manifest.description",
-                "manifest.tags"
-            ],
-            threshold: 0.3 // We still want fuzzy, but pretty close
-        });
-        const results = fuse.search(query).map(r => r.item) ?? [];
+        if (options.category != null) {
+            plugins = plugins.filter(p =>
+                (p.manifest as CategorizedPluginManifest).categories?.includes(options.category!)
+            );
+        }
 
-        return results;
+        const query = options.query?.trim();
+        if (query?.length) {
+            const fuse = new Fuse(plugins, {
+                keys: [
+                    "author",
+                    "name",
+                    "manifest.name",
+                    "manifest.author",
+                    "manifest.description",
+                    "manifest.tags"
+                ],
+                threshold: 0.3 // We still want fuzzy, but pretty close
+            });
+            plugins = fuse.search(query).map(r => r.item);
+        }
+
+        const sorted = await this.sortPlugins(plugins, options.sortBy);
+
+        const start = (options.page - 1) * options.pageSize;
+        return {
+            items: sorted.slice(start, start + options.pageSize),
+            total: sorted.length
+        };
+    }
+
+    private async sortPlugins(
+        plugins: ManagedPluginWithManifest[],
+        sortBy: PluginSearchSortMode
+    ): Promise<ManagedPluginWithManifest[]> {
+        switch (sortBy) {
+            case "popular": {
+                const downloads = await this.pluginStats.getDownloadTotals();
+                return plugins.toSorted((a, b) =>
+                    ((downloads.get(`${b.author}/${b.name}`) ?? 0) - (downloads.get(`${a.author}/${a.name}`) ?? 0))
+                    || a.manifest.name.localeCompare(b.manifest.name)
+                );
+            }
+            case "recently-updated":
+                return plugins.toSorted((a, b) =>
+                    (Date.parse(b.manifest.releaseDate) || 0) - (Date.parse(a.manifest.releaseDate) || 0)
+                );
+            case "name":
+                return plugins.toSorted((a, b) =>
+                    a.manifest.name.localeCompare(b.manifest.name, undefined, { sensitivity: "base" })
+                );
+        }
     }
 
     private isLatestVersionNewer(latestVersion: string, currentVersion: string): boolean {
@@ -299,12 +344,12 @@ export class PluginCacheService {
         return true;
     }
 
-    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPlugin[]> {
+    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPluginWithManifest[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availableUpdates: ManagedPlugin[] = [];
+        const availableUpdates: ManagedPluginWithManifest[] = [];
 
         for (const currentPlugin of request.plugins) {
             const plugin = pluginCache.find(p => p.author === currentPlugin.author && p.name === currentPlugin.name);

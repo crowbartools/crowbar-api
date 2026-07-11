@@ -1,0 +1,55 @@
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsDefined,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from "class-validator";
+import {
+  PLUGIN_CATEGORIES,
+  PLUGIN_SEARCH_SORT_MODES,
+  type PluginCategory,
+  type PluginSearchSortMode,
+} from "src/domain/plugins/plugin-types";
+import { FirebotVersionDto } from "./firebot-version.dto";
+
+export class PluginSearchDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  query?: string;
+
+  @ApiPropertyOptional({ enum: PLUGIN_CATEGORIES })
+  @IsOptional()
+  @IsIn(PLUGIN_CATEGORIES)
+  category?: PluginCategory;
+
+  @ApiPropertyOptional({ enum: PLUGIN_SEARCH_SORT_MODES, default: "popular" })
+  @IsOptional()
+  @IsIn(PLUGIN_SEARCH_SORT_MODES)
+  sortBy?: PluginSearchSortMode;
+
+  @ApiPropertyOptional({ minimum: 1, default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 50, default: 20 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  pageSize?: number;
+
+  @ApiProperty({ type: FirebotVersionDto })
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => FirebotVersionDto)
+  firebotVersion: FirebotVersionDto;
+}

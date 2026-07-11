@@ -8,14 +8,12 @@ import {
 import { ApiResponse } from "@nestjs/swagger";
 import { PluginCacheService } from "../../../domain/plugins/plugin-cache.service";
 import { PluginStatsService } from "../../../domain/plugins/plugin-stats.service";
-import type {
-  ManifestFirebotVersion,
-  ManagedPluginUpdateRequest
-} from "@crowbartools/firebot-types";
 import { TwitchAuth } from "src/api/decorators/twitch-auth";
 import { CurrentUser } from "src/api/decorators/current-user.decorator";
 import type { TwitchUser } from "src/domain/profile-data/profile-types";
 import { PluginRefDto } from "./dtos/plugin-ref.dto";
+import { PluginSearchDto } from "./dtos/plugin-search.dto";
+import { PluginUpdateCheckDto } from "./dtos/plugin-update-check.dto";
 
 @Controller({
   path: "plugins",
@@ -38,15 +36,22 @@ export class PluginsController {
   @Post("search")
   @HttpCode(200)
   async searchPlugins(
-    @Body() body: { query: string, firebotVersion: ManifestFirebotVersion },
+    @Body() body: PluginSearchDto,
   ) {
-    return await this.pluginCache.searchPlugins(body.query, body.firebotVersion);
+    return await this.pluginCache.searchPlugins({
+      query: body.query,
+      category: body.category,
+      sortBy: body.sortBy ?? "popular",
+      page: body.page ?? 1,
+      pageSize: body.pageSize ?? 20,
+      firebotVersion: body.firebotVersion,
+    });
   }
 
   @Post("updates")
   @HttpCode(200)
   async checkPluginsForUpdates(
-    @Body() request: ManagedPluginUpdateRequest
+    @Body() request: PluginUpdateCheckDto
   ) {
     return await this.pluginCache.checkPluginsForUpdates(request);
   }

@@ -20,4 +20,19 @@ export class PluginStatsRepository extends IPluginStatsRepository {
       [author, name],
     );
   }
+
+  async getAllTotals(): Promise<PluginStatTotals[]> {
+    const result = await this.db.query<{
+      author: string;
+      name: string;
+      count: string;
+    }>("SELECT author, name, count FROM plugin_downloads");
+
+    // pg returns bigint columns as strings
+    return result.rows.map((row) => ({
+      author: row.author,
+      name: row.name,
+      downloads: Number(row.count),
+    }));
+  }
 }

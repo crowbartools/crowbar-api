@@ -26,4 +26,9 @@ export class PluginStatsService {
     this.downloadCooldowns.set(key, now);
     return { counted: true };
   }
+
+  async getDownloadTotals(): Promise<Map<string, number>> {
+    const totals = await this.repository.getAllTotals();
+    return new Map(totals.map((t) => [`${t.author}/${t.name}`, t.downloads]));
+  }
 }

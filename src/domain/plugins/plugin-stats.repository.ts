@@ -6,4 +6,5 @@ export type PluginStatTotals = {
 
 export abstract class IPluginStatsRepository {
   abstract incrementDownload(author: string, name: string): Promise<void>;
+  abstract getAllTotals(): Promise<PluginStatTotals[]>;
 }

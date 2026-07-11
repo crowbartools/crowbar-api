@@ -4,6 +4,7 @@ import { ProfileDataCacheService } from "./profile-data/profile-data-cache.servi
 import { DataBinCacheService } from "./data-bin/data-bin-cache.service";
 import { NotificationCacheService } from "./notifications/notification-cache.service";
 import { PluginCacheService } from "./plugins/plugin-cache.service";
+import { PluginStatsService } from "./plugins/plugin-stats.service";
 import { SteamService } from "./steam/steam.service";
 
 const providers: Provider[] = [
@@ -11,6 +12,7 @@ const providers: Provider[] = [
   DataBinCacheService,
   NotificationCacheService,
   PluginCacheService,
+  PluginStatsService,
   SteamService,
 ];
 

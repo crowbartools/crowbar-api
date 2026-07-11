@@ -1,29 +1,31 @@
-import { Injectable } from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Inject, Injectable } from "@nestjs/common";
+import { Cache } from "cache-manager";
 import { IPluginStatsRepository } from "./plugin-stats.repository";
 
 const DOWNLOAD_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 @Injectable()
 export class PluginStatsService {
-  constructor(private readonly repository: IPluginStatsRepository) {}
-
-  private readonly downloadCooldowns = new Map<string, number>();
+  constructor(
+    private readonly repository: IPluginStatsRepository,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async trackDownload(
     author: string,
     name: string,
+    version: string,
     twitchUserId: string,
   ): Promise<{ counted: boolean }> {
-    const key = `${twitchUserId}:${author}/${name}`;
-    const now = Date.now();
-    const last = this.downloadCooldowns.get(key);
+    const cooldownKey = `plugin-download-cooldown:${twitchUserId}:${author}/${name}@${version}`;
 
-    if (last != null && now - last < DOWNLOAD_COOLDOWN_MS) {
+    if (await this.cacheManager.get(cooldownKey)) {
       return { counted: false };
     }
 
-    await this.repository.incrementDownload(author, name);
-    this.downloadCooldowns.set(key, now);
+    await this.repository.incrementDownload(author, name, version);
+    await this.cacheManager.set(cooldownKey, true, DOWNLOAD_COOLDOWN_MS);
     return { counted: true };
   }
 

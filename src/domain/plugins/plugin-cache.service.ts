@@ -255,6 +255,15 @@ export class PluginCacheService {
         return null;
     }
 
+    async pluginVersionExists(author: string, name: string, version: string): Promise<boolean> {
+        // Load the cache if it hasn't been already
+        await this.loadCache();
+
+        const pluginCache = await this.cache.get("plugin-cache") ?? [];
+        const plugin = pluginCache.find(p => p.author === author && p.name === name);
+        return plugin?.versions.some(v => v.version === version) ?? false;
+    }
+
     async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPluginWithManifest[], total: number }> {
         // Load the cache if it hasn't been already
         await this.loadCache();

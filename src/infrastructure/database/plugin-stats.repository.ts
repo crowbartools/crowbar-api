@@ -11,13 +11,17 @@ export class PluginStatsRepository extends IPluginStatsRepository {
     super();
   }
 
-  async incrementDownload(author: string, name: string): Promise<void> {
+  async incrementDownload(
+    author: string,
+    name: string,
+    version: string,
+  ): Promise<void> {
     await this.db.query(
-      `INSERT INTO plugin_downloads (author, name, count)
-       VALUES ($1, $2, 1)
-       ON CONFLICT (author, name)
+      `INSERT INTO plugin_downloads (author, name, version, count)
+       VALUES ($1, $2, $3, 1)
+       ON CONFLICT (author, name, version)
        DO UPDATE SET count = plugin_downloads.count + 1`,
-      [author, name],
+      [author, name, version],
     );
   }
 
@@ -25,14 +29,18 @@ export class PluginStatsRepository extends IPluginStatsRepository {
     const result = await this.db.query<{
       author: string;
       name: string;
-      count: string;
-    }>("SELECT author, name, count FROM plugin_downloads");
+      total: string;
+    }>(
+      `SELECT author, name, SUM(count) AS total
+       FROM plugin_downloads
+       GROUP BY author, name`,
+    );
 
     // pg returns bigint columns as strings
     return result.rows.map((row) => ({
       author: row.author,
       name: row.name,
-      downloads: Number(row.count),
+      downloads: Number(row.total),
     }));
   }
 }

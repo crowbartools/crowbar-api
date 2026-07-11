@@ -9,4 +9,8 @@ export class PluginRefDto {
   @ApiProperty()
   @IsString()
   name: string;
+
+  @ApiProperty()
+  @IsString()
+  version: string;
 }

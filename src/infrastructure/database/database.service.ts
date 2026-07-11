@@ -13,8 +13,9 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS plugin_downloads (
     author  text NOT NULL,
     name    text NOT NULL,
+    version text NOT NULL,
     count   bigint NOT NULL DEFAULT 0,
-    PRIMARY KEY (author, name)
+    PRIMARY KEY (author, name, version)
   );
 `;
 

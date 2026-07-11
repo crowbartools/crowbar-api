@@ -4,6 +4,7 @@ import {
   Post,
   HttpCode,
   Body,
+  NotFoundException,
 } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
 import { PluginCacheService } from "../../../domain/plugins/plugin-cache.service";
@@ -63,6 +64,11 @@ export class PluginsController {
     @Body() body: PluginRefDto,
     @CurrentUser() user: TwitchUser
   ) {
-    return await this.pluginStats.trackDownload(body.author, body.name, user.twitchUserId);
+    const validPluginVersion = await this.pluginCache.pluginVersionExists(body.author, body.name, body.version);
+    if (!validPluginVersion) {
+      throw new NotFoundException("Unknown plugin version");
+    }
+
+    return await this.pluginStats.trackDownload(body.author, body.name, body.version, user.twitchUserId);
   }
 }

@@ -17,16 +17,16 @@ export class PluginStatsService {
     name: string,
     version: string,
     twitchUserId: string,
-  ): Promise<{ counted: boolean }> {
+  ): Promise<void> {
     const cooldownKey = `plugin-download-cooldown:${twitchUserId}:${author}/${name}@${version}`;
 
     if (await this.cacheManager.get(cooldownKey)) {
-      return { counted: false };
+      return;
     }
 
     await this.repository.incrementDownload(author, name, version);
     await this.cacheManager.set(cooldownKey, true, DOWNLOAD_COOLDOWN_MS);
-    return { counted: true };
+    return;
   }
 
   async getDownloadTotals(): Promise<Map<string, number>> {

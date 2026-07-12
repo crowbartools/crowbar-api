@@ -25,11 +25,23 @@ export type PluginFeature = (typeof PLUGIN_FEATURES)[number];
 export const PLUGIN_SEARCH_SORT_MODES = ["popular", "recently-updated", "name"] as const;
 export type PluginSearchSortMode = (typeof PLUGIN_SEARCH_SORT_MODES)[number];
 
+export const OFFICIAL_PLUGIN_GITHUB_ORGS = [
+    "crowbartools",
+    "ebiggz",
+    "zunderscore",
+    "sreject",
+    "heyaapl",
+    "cavemobster",
+    "itsjesski",
+    "brumoen",
+] as const;
+
 
 export type PluginSearchOptions = {
     query?: string;
     category?: PluginCategory;
     features?: PluginFeature[];
+    official?: boolean;
     sortBy: PluginSearchSortMode;
     page: number;
     pageSize: number;

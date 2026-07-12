@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
   IsArray,
+  IsBoolean,
   IsDefined,
   IsIn,
   IsInt,
@@ -37,6 +38,11 @@ export class PluginSearchDto {
   @IsArray()
   @IsIn(PLUGIN_FEATURES, { each: true })
   features?: PluginFeature[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  official?: boolean;
 
   @ApiPropertyOptional({ enum: PLUGIN_SEARCH_SORT_MODES, default: "popular" })
   @IsOptional()

@@ -43,6 +43,7 @@ export class PluginsController {
       query: body.query,
       category: body.category,
       features: body.features,
+      official: body.official,
       sortBy: body.sortBy ?? "popular",
       page: body.page ?? 1,
       pageSize: body.pageSize ?? 20,
@@ -67,9 +68,9 @@ export class PluginsController {
   ) {
     const validPluginVersion = await this.pluginCache.pluginVersionExists(body.author, body.name, body.version);
     if (!validPluginVersion) {
-      throw new NotFoundException("Unknown plugin version");
+      return;
     }
 
-    return await this.pluginStats.trackDownload(body.author, body.name, body.version, user.twitchUserId);
+    await this.pluginStats.trackDownload(body.author, body.name, body.version, user.twitchUserId);
   }
 }

@@ -4,11 +4,12 @@ import type {
     ManagedPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
-import type {
-    CachedPlugin,
-    PluginSearchOptions,
-    PluginSearchSortMode,
-    PluginVersionWithManifest,
+import {
+    OFFICIAL_PLUGIN_GITHUB_ORGS,
+    type CachedPlugin,
+    type PluginSearchOptions,
+    type PluginSearchSortMode,
+    type PluginVersionWithManifest,
 } from "./plugin-types";
 import { Octokit } from "@octokit/rest";
 import { Readable } from "node:stream";
@@ -254,6 +255,14 @@ export class PluginCacheService {
         return null;
     }
 
+    private isOfficialPlugin(manifest: ManagedPluginManifest): boolean {
+        const repoOwner = manifest.repo
+            ?.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\//i)?.[1]
+            ?.toLowerCase();
+
+        return repoOwner != null && (OFFICIAL_PLUGIN_GITHUB_ORGS as readonly string[]).includes(repoOwner);
+    }
+
     async pluginVersionExists(author: string, name: string, version: string): Promise<boolean> {
         // Load the cache if it hasn't been already
         await this.loadCache();
@@ -290,6 +299,10 @@ export class PluginCacheService {
             plugins = plugins.filter(p =>
                 p.manifest.features?.some(f => options.features!.includes(f))
             );
+        }
+
+        if (options.official === true) {
+            plugins = plugins.filter(p => this.isOfficialPlugin(p.manifest));
         }
 
         const query = options.query?.trim();

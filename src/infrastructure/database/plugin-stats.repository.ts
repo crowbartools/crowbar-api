@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   IPluginStatsRepository,
   PluginStatTotals,
-} from "src/domain/plugins/plugin-stats.repository";
+} from "../../domain/plugins/plugin-stats.repository";
 import { DatabaseService } from "./database.service";
 
 @Injectable()

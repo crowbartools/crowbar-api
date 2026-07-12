@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
+  IsArray,
   IsDefined,
   IsIn,
   IsInt,
@@ -12,10 +13,12 @@ import {
 } from "class-validator";
 import {
   PLUGIN_CATEGORIES,
+  PLUGIN_FEATURES,
   PLUGIN_SEARCH_SORT_MODES,
   type PluginCategory,
+  type PluginFeature,
   type PluginSearchSortMode,
-} from "src/domain/plugins/plugin-types";
+} from "../../../../domain/plugins/plugin-types";
 import { FirebotVersionDto } from "./firebot-version.dto";
 
 export class PluginSearchDto {
@@ -28,6 +31,12 @@ export class PluginSearchDto {
   @IsOptional()
   @IsIn(PLUGIN_CATEGORIES)
   category?: PluginCategory;
+
+  @ApiPropertyOptional({ enum: PLUGIN_FEATURES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsIn(PLUGIN_FEATURES, { each: true })
+  features?: PluginFeature[];
 
   @ApiPropertyOptional({ enum: PLUGIN_SEARCH_SORT_MODES, default: "popular" })
   @IsOptional()

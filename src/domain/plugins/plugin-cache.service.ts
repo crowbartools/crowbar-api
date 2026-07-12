@@ -1,12 +1,11 @@
 import type {
+    ManagedPlugin,
     ManagedPluginManifest,
-    ManagedPluginWithManifest,
     ManagedPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
 import type {
     CachedPlugin,
-    CategorizedPluginManifest,
     PluginSearchOptions,
     PluginSearchSortMode,
     PluginVersionWithManifest,
@@ -264,7 +263,7 @@ export class PluginCacheService {
         return plugin?.versions.some(v => v.version === version) ?? false;
     }
 
-    async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPluginWithManifest[], total: number }> {
+    async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPlugin[], total: number }> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
@@ -277,13 +276,19 @@ export class PluginCacheService {
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                } as ManagedPluginWithManifest
+                }
                 : null;
         }).filter(r => r != null);
 
         if (options.category != null) {
             plugins = plugins.filter(p =>
-                (p.manifest as CategorizedPluginManifest).categories?.includes(options.category!)
+                (p.manifest).category === options.category
+            );
+        }
+
+        if (options.features?.length) {
+            plugins = plugins.filter(p =>
+                p.manifest.features?.some(f => options.features!.includes(f))
             );
         }
 
@@ -313,9 +318,9 @@ export class PluginCacheService {
     }
 
     private async sortPlugins(
-        plugins: ManagedPluginWithManifest[],
+        plugins: ManagedPlugin[],
         sortBy: PluginSearchSortMode
-    ): Promise<ManagedPluginWithManifest[]> {
+    ): Promise<ManagedPlugin[]> {
         switch (sortBy) {
             case "popular": {
                 const downloads = await this.pluginStats.getDownloadTotals();
@@ -353,12 +358,12 @@ export class PluginCacheService {
         return true;
     }
 
-    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPluginWithManifest[]> {
+    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPlugin[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availableUpdates: ManagedPluginWithManifest[] = [];
+        const availableUpdates: ManagedPlugin[] = [];
 
         for (const currentPlugin of request.plugins) {
             const plugin = pluginCache.find(p => p.author === currentPlugin.author && p.name === currentPlugin.name);

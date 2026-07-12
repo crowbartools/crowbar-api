@@ -276,7 +276,7 @@ export class PluginCacheService {
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                }
+                } as ManagedPlugin
                 : null;
         }).filter(r => r != null);
 

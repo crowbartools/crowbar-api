@@ -4,19 +4,26 @@ import {
   Post,
   HttpCode,
   Body,
+  NotFoundException,
 } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
 import { PluginCacheService } from "../../../domain/plugins/plugin-cache.service";
-import type {
-  ManifestFirebotVersion,
-  ManagedPluginUpdateRequest
-} from "@crowbartools/firebot-types";
+import { PluginStatsService } from "../../../domain/plugins/plugin-stats.service";
+import { TwitchAuth } from "../../decorators/twitch-auth";
+import { CurrentUser } from "../../decorators/current-user.decorator";
+import type { TwitchUser } from "../../../domain/profile-data/profile-types";
+import { PluginRefDto } from "./dtos/plugin-ref.dto";
+import { PluginSearchDto } from "./dtos/plugin-search.dto";
+import { PluginUpdateCheckDto } from "./dtos/plugin-update-check.dto";
 
 @Controller({
   path: "plugins",
 })
 export class PluginsController {
-  constructor(private readonly pluginCache: PluginCacheService) { }
+  constructor(
+    private readonly pluginCache: PluginCacheService,
+    private readonly pluginStats: PluginStatsService,
+  ) { }
 
   @Get("refresh")
   @HttpCode(204)
@@ -30,16 +37,40 @@ export class PluginsController {
   @Post("search")
   @HttpCode(200)
   async searchPlugins(
-    @Body() body: { query: string, firebotVersion: ManifestFirebotVersion }
+    @Body() body: PluginSearchDto,
   ) {
-    return await this.pluginCache.searchPlugins(body.query, body.firebotVersion);
+    return await this.pluginCache.searchPlugins({
+      query: body.query,
+      category: body.category,
+      features: body.features,
+      official: body.official,
+      sortBy: body.sortBy ?? "popular",
+      page: body.page ?? 1,
+      pageSize: body.pageSize ?? 20,
+      firebotVersion: body.firebotVersion,
+    });
   }
 
   @Post("updates")
   @HttpCode(200)
   async checkPluginsForUpdates(
-    @Body() request: ManagedPluginUpdateRequest
+    @Body() request: PluginUpdateCheckDto
   ) {
     return await this.pluginCache.checkPluginsForUpdates(request);
+  }
+
+  @Post("track-download")
+  @HttpCode(200)
+  @TwitchAuth()
+  async trackDownload(
+    @Body() body: PluginRefDto,
+    @CurrentUser() user: TwitchUser
+  ) {
+    const validPluginVersion = await this.pluginCache.pluginVersionExists(body.author, body.name, body.version);
+    if (!validPluginVersion) {
+      return;
+    }
+
+    await this.pluginStats.trackDownload(body.author, body.name, body.version, user.twitchUserId);
   }
 }

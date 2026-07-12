@@ -1,12 +1,15 @@
 import type {
-    ManagedPluginManifest,
     ManagedPlugin,
+    ManagedPluginManifest,
     ManagedPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
-import type {
-    CachedPlugin,
-    PluginVersionWithManifest,
+import {
+    OFFICIAL_PLUGIN_GITHUB_ORGS,
+    type CachedPlugin,
+    type PluginSearchOptions,
+    type PluginSearchSortMode,
+    type PluginVersionWithManifest,
 } from "./plugin-types";
 import { Octokit } from "@octokit/rest";
 import { Readable } from "node:stream";
@@ -17,6 +20,7 @@ import { Injectable } from "@nestjs/common";
 import { ICacheService } from "../cache/cache-service.interface";
 import { createGunzip } from "node:zlib";
 import sortVersionStrings from "../util/sort-versions";
+import { PluginStatsService } from "./plugin-stats.service";
 
 const PLUGIN_MANIFEST_OWNER = "crowbartools";
 const PLUGIN_MANIFEST_REPO = "firebot-plugins";
@@ -29,7 +33,10 @@ const PLUGIN_MANIFEST_FILENAME_REGEX = /^manifests\/(.*)\/(.*)\/(.*)\/manifest.j
 
 @Injectable()
 export class PluginCacheService {
-    constructor(private readonly cache: ICacheService<CachedPlugin[]>) { }
+    constructor(
+        private readonly cache: ICacheService<CachedPlugin[]>,
+        private readonly pluginStats: PluginStatsService,
+    ) { }
 
     private _octokit = new Octokit();
     private _latestHash = "";
@@ -248,13 +255,30 @@ export class PluginCacheService {
         return null;
     }
 
-    async searchPlugins(query: string, firebotVersion: ManifestFirebotVersion): Promise<ManagedPlugin[]> {
+    private isOfficialPlugin(manifest: ManagedPluginManifest): boolean {
+        const repoOwner = manifest.repo
+            ?.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\//i)?.[1]
+            ?.toLowerCase();
+
+        return repoOwner != null && (OFFICIAL_PLUGIN_GITHUB_ORGS as readonly string[]).includes(repoOwner);
+    }
+
+    async pluginVersionExists(author: string, name: string, version: string): Promise<boolean> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availablePlugins = pluginCache.map(r => {
-            const latest = this.getLatestCompatiblePluginVersion(r.versions, firebotVersion);
+        const plugin = pluginCache.find(p => p.author === author && p.name === name);
+        return plugin?.versions.some(v => v.version === version) ?? false;
+    }
+
+    async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPlugin[], total: number }> {
+        // Load the cache if it hasn't been already
+        await this.loadCache();
+
+        const pluginCache = await this.cache.get("plugin-cache") ?? [];
+        let plugins = pluginCache.map(r => {
+            const latest = this.getLatestCompatiblePluginVersion(r.versions, options.firebotVersion);
             return latest != null
                 ? {
                     author: r.author,
@@ -263,22 +287,70 @@ export class PluginCacheService {
                     manifest: latest.manifest
                 } as ManagedPlugin
                 : null;
-        }).filter(r => r != null)
+        }).filter(r => r != null);
 
-        const fuse = new Fuse(availablePlugins ?? [], {
-            keys: [
-                "author",
-                "pluginName",
-                "manifest.name",
-                "manifest.author",
-                "manifest.description",
-                "manifest.tags"
-            ],
-            threshold: 0.3 // We still want fuzzy, but pretty close
-        });
-        const results = fuse.search(query).map(r => r.item) ?? [];
+        if (options.category != null) {
+            plugins = plugins.filter(p =>
+                (p.manifest).category === options.category
+            );
+        }
 
-        return results;
+        if (options.features?.length) {
+            plugins = plugins.filter(p =>
+                p.manifest.features?.some(f => options.features!.includes(f))
+            );
+        }
+
+        if (options.official === true) {
+            plugins = plugins.filter(p => this.isOfficialPlugin(p.manifest));
+        }
+
+        const query = options.query?.trim();
+        if (query?.length) {
+            const fuse = new Fuse(plugins, {
+                keys: [
+                    "author",
+                    "name",
+                    "manifest.name",
+                    "manifest.author",
+                    "manifest.description",
+                    "manifest.tags"
+                ],
+                threshold: 0.3 // We still want fuzzy, but pretty close
+            });
+            plugins = fuse.search(query).map(r => r.item);
+        }
+
+        const sorted = await this.sortPlugins(plugins, options.sortBy);
+
+        const start = (options.page - 1) * options.pageSize;
+        return {
+            items: sorted.slice(start, start + options.pageSize),
+            total: sorted.length
+        };
+    }
+
+    private async sortPlugins(
+        plugins: ManagedPlugin[],
+        sortBy: PluginSearchSortMode
+    ): Promise<ManagedPlugin[]> {
+        switch (sortBy) {
+            case "popular": {
+                const downloads = await this.pluginStats.getDownloadTotals();
+                return plugins.toSorted((a, b) =>
+                    ((downloads.get(`${b.author}/${b.name}`) ?? 0) - (downloads.get(`${a.author}/${a.name}`) ?? 0))
+                    || a.manifest.name.localeCompare(b.manifest.name)
+                );
+            }
+            case "recently-updated":
+                return plugins.toSorted((a, b) =>
+                    (Date.parse(b.manifest.releaseDate) || 0) - (Date.parse(a.manifest.releaseDate) || 0)
+                );
+            case "name":
+                return plugins.toSorted((a, b) =>
+                    a.manifest.name.localeCompare(b.manifest.name, undefined, { sensitivity: "base" })
+                );
+        }
     }
 
     private isLatestVersionNewer(latestVersion: string, currentVersion: string): boolean {

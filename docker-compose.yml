@@ -1,29 +1,21 @@
-version: "3.8"
-
 services:
-  mongo:
-    image: mongo:6.0.4-focal
-    container_name: crowbar-mongo
+  crowbar-db:
+    image: postgres:16-alpine
+    container_name: crowbar-db
     restart: unless-stopped
     environment:
-      MONGO_INITDB_DATABASE: "crowbar"
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: crowbartools
+      POSTGRES_USER: crowbar
+      POSTGRES_PASSWORD: crowbar
+      POSTGRES_DB: crowbar
     ports:
-      - 127.0.0.1:27017-27019:27017-27019
+      - 127.0.0.1:5433:5432
     volumes:
-      - cbDbData:/data/db
-      - cbDbConfig:/data/configdb
-  mongo-express:
-    image: mongo-express
-    restart: unless-stopped
-    ports:
-      - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: crowbartools
-      ME_CONFIG_MONGODB_URL: mongodb://admin:crowbartools@mongo:27017/
+      - crowbarDbData:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crowbar -d crowbar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  cbDbData:
-  cbDbConfig:
+  crowbarDbData:

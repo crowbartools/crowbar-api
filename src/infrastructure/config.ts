@@ -10,4 +10,5 @@ export default registerAs("app", () => ({
   cacheLruSize: parseInt(process.env.CACHE_LRU_SIZE!, 10) || 2500,
   twitchClientId: process.env.TWITCH_CLIENT_ID || "",
   steamWebApiKey: process.env.STEAM_WEB_API_KEY || "",
+  databaseUrl: process.env.DATABASE_URL || "",
 }));

@@ -1,7 +1,7 @@
 import type {
-    ManagedPlugin,
-    ManagedPluginManifest,
-    ManagedPluginUpdateRequest,
+    CommunityPlugin,
+    CommunityPluginManifest,
+    CommunityPluginUpdateRequest,
     ManifestFirebotVersion,
 } from "@crowbartools/firebot-types";
 import {
@@ -74,7 +74,7 @@ export class PluginCacheService {
                         });
                         await finished(entry);
 
-                        const manifest = JSON.parse(manifestContentsRaw) as ManagedPluginManifest;
+                        const manifest = JSON.parse(manifestContentsRaw) as CommunityPluginManifest;
 
                         const existingEntry = pluginCache.find(p => p.author === author && p.name === pluginName);
 
@@ -150,7 +150,7 @@ export class PluginCacheService {
 
                         // Grab the manifest file from GH
                         const rawUrl = `https://raw.githubusercontent.com/${PLUGIN_MANIFEST_OWNER}/${PLUGIN_MANIFEST_REPO}/${PLUGIN_MANIFEST_BRANCH}/${file.filename}`;
-                        const manifest = await (await fetch(rawUrl)).json() as ManagedPluginManifest;
+                        const manifest = await (await fetch(rawUrl)).json() as CommunityPluginManifest;
 
                         // Update cache with new manifest data
                         const existingPlugin = pluginCache.find(p =>
@@ -237,7 +237,7 @@ export class PluginCacheService {
     private getLatestCompatiblePluginVersion(
         pluginVersions: Array<PluginVersionWithManifest>,
         firebotVersion: ManifestFirebotVersion
-    ): { version: string, manifest: ManagedPluginManifest } | null {
+    ): { version: string, manifest: CommunityPluginManifest } | null {
         const sortedVersionList = pluginVersions
             // Sort them in reverse so we get latest one first
             .toSorted((a, b) => sortVersionStrings(b.version, a.version));
@@ -255,7 +255,7 @@ export class PluginCacheService {
         return null;
     }
 
-    private isOfficialPlugin(manifest: ManagedPluginManifest): boolean {
+    private isOfficialPlugin(manifest: CommunityPluginManifest): boolean {
         const repoOwner = manifest.repo
             ?.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\//i)?.[1]
             ?.toLowerCase();
@@ -272,7 +272,7 @@ export class PluginCacheService {
         return plugin?.versions.some(v => v.version === version) ?? false;
     }
 
-    async searchPlugins(options: PluginSearchOptions): Promise<{ items: ManagedPlugin[], total: number }> {
+    async searchPlugins(options: PluginSearchOptions): Promise<{ items: CommunityPlugin[], total: number }> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
@@ -285,7 +285,7 @@ export class PluginCacheService {
                     name: r.name,
                     version: latest.version,
                     manifest: latest.manifest
-                } as ManagedPlugin
+                } as CommunityPlugin
                 : null;
         }).filter(r => r != null);
 
@@ -331,9 +331,9 @@ export class PluginCacheService {
     }
 
     private async sortPlugins(
-        plugins: ManagedPlugin[],
+        plugins: CommunityPlugin[],
         sortBy: PluginSearchSortMode
-    ): Promise<ManagedPlugin[]> {
+    ): Promise<CommunityPlugin[]> {
         switch (sortBy) {
             case "popular": {
                 const downloads = await this.pluginStats.getDownloadTotals();
@@ -371,12 +371,12 @@ export class PluginCacheService {
         return true;
     }
 
-    async checkPluginsForUpdates(request: ManagedPluginUpdateRequest): Promise<ManagedPlugin[]> {
+    async checkPluginsForUpdates(request: CommunityPluginUpdateRequest): Promise<CommunityPlugin[]> {
         // Load the cache if it hasn't been already
         await this.loadCache();
 
         const pluginCache = await this.cache.get("plugin-cache") ?? [];
-        const availableUpdates: ManagedPlugin[] = [];
+        const availableUpdates: CommunityPlugin[] = [];
 
         for (const currentPlugin of request.plugins) {
             const plugin = pluginCache.find(p => p.author === currentPlugin.author && p.name === currentPlugin.name);

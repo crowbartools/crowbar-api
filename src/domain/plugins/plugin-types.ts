@@ -1,4 +1,4 @@
-import type { ManagedPluginManifest, ManifestFirebotVersion } from "@crowbartools/firebot-types";
+import type { CommunityPluginManifest, ManifestFirebotVersion } from "@crowbartools/firebot-types";
 
 export const PLUGIN_CATEGORIES = [
     "stream-services",
@@ -50,7 +50,7 @@ export type PluginSearchOptions = {
 
 export type PluginVersionWithManifest = {
     version: string;
-    manifest: ManagedPluginManifest;
+    manifest: CommunityPluginManifest;
 };
 
 export type CachedPlugin = {

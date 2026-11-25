@@ -42,8 +42,8 @@ export class PluginCacheService {
     private _latestHash = "";
     private _refreshTimeout: NodeJS.Timeout | undefined;
 
-    async loadCache(): Promise<void> {
-        if (!this._latestHash.length) {
+    async loadCache(forceReload = false): Promise<void> {
+        if (forceReload === true || !this._latestHash.length) {
             try {
                 // Get repo info
                 const repo = await this._octokit.repos.getBranch({
@@ -113,8 +113,11 @@ export class PluginCacheService {
     }
 
     async refreshCache(forceRefresh = false): Promise<void> {
-        if (forceRefresh === true || !this._latestHash.length) {
-            await this.loadCache();
+        // Load the cache
+        const pluginCache = await this.cache.get("plugin-cache") ?? [];
+
+        if (forceRefresh === true || !this._latestHash.length || !pluginCache.length) {
+            await this.loadCache(true);
         } else {
             try {
                 // Get repo info
@@ -128,9 +131,6 @@ export class PluginCacheService {
                     // No changes, so dip out
                     return;
                 }
-
-                // Load the cache
-                const pluginCache = await this.cache.get("plugin-cache") ?? [];
 
                 // Get diff between our latest and repo latest
                 const changes = await this._octokit.repos.compareCommits({
